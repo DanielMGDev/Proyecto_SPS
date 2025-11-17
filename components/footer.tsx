@@ -14,7 +14,7 @@ export function Footer() {
               <span className="text-2xl">📚</span>
               <span className="font-serif text-xl font-bold">LibreBooks</span>
             </div>
-            <p className="text-primary-foreground/80">Actividad PSP realizada por:\nJose Daniel Morales Gaitan\nAndrés Roberto Rengifo\nGuillermo Mayorga Castro\nOrtiz Villalobos Jessica Natalia</p>
+            <p className="text-primary-foreground/80">Actividad PSP realizada por:<br/>Jose Daniel Morales Gaitan<br/>Andrés Roberto Rengifo<br/>Guillermo Mayorga Castro<br/>Ortiz Villalobos Jessica Natalia</p>
           </div>
 
           {/* Navigation */}
