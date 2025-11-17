@@ -14,7 +14,7 @@ export function Footer() {
               <span className="text-2xl">📚</span>
               <span className="font-serif text-xl font-bold">LibreBooks</span>
             </div>
-            <p className="text-primary-foreground/80">Tu librería en línea de confianza con miles de títulos.</p>
+            <p className="text-primary-foreground/80">Actividad PSP realizada por:\nJose Daniel Morales Gaitan\nAndrés Roberto Rengifo\nGuillermo Mayorga Castro\nOrtiz Villalobos Jessica Natalia</p>
           </div>
 
           {/* Navigation */}
