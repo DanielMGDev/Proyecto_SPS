@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Proyecto SPS - Libros</title>
+    
+    <!-- React & ReactDOM (Versiones fijas y estables) -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    
+    <!-- Prop-types (Requerido por Recharts) -->
+    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+    
+    <!-- Recharts (Versión compatible) -->
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+
+    <!-- Babel para JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body {
+            background-color: #f8fafc; /* Slate-50 un poco más claro */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        /* Clase personalizada para simular la fuente Serif de la imagen */
+        .font-brand {
+            font-family: 'Georgia', 'Cambria', 'Times New Roman', Times, serif;
+        }
+        
+        /* Personalización de la barra de desplazamiento */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #93c5fd; /* Azul claro */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b82f6; /* Azul medio */
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Desestructuración segura de Recharts
+        const { 
+            LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, 
+            XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area 
+        } = window.Recharts;
+
+        // --- DEFINICIÓN MANUAL DE ICONOS (SVG) ---
+        const IconWrapper = ({ children, size = 24, className = "" }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width={size} 
+                height={size} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className}
+            >
+                {children}
+            </svg>
+        );
+
+        const BookOpen = (props) => (
+            <IconWrapper {...props}>
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </IconWrapper>
+        );
+        const Users = (props) => (
+            <IconWrapper {...props}>
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </IconWrapper>
+        );
+        const DollarSign = (props) => (
+            <IconWrapper {...props}>
+                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </IconWrapper>
+        );
+        const MessageSquare = (props) => (
+            <IconWrapper {...props}>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </IconWrapper>
+        );
+        const TrendingUp = (props) => (
+            <IconWrapper {...props}>
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+            </IconWrapper>
+        );
+        const Star = (props) => (
+            <IconWrapper {...props}>
+                <polygon points="12 2 15.09 8.26 21.35 9.27 16.82 13.57 18.18 19.9 12 16.24 5.82 19.9 7.18 13.57 2.65 9.27 8.91 8.26 12 2"/>
+            </IconWrapper>
+        );
+        const Search = (props) => (
+            <IconWrapper {...props}>
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </IconWrapper>
+        );
+        const Bell = (props) => (
+            <IconWrapper {...props}>
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </IconWrapper>
+        );
+        const Menu = (props) => (
+            <IconWrapper {...props}>
+                <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </IconWrapper>
+        );
+        const X = (props) => (
+            <IconWrapper {...props}>
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </IconWrapper>
+        );
+
+        // --- DATOS FALSOS (MOCK DATA) ---
+
+        const salesData = [
+            { name: 'Ene', ventas: 4000, visitas: 2400 },
+            { name: 'Feb', ventas: 3000, visitas: 1398 },
+            { name: 'Mar', ventas: 2000, visitas: 9800 },
+            { name: 'Abr', ventas: 2780, visitas: 3908 },
+            { name: 'May', ventas: 1890, visitas: 4800 },
+            { name: 'Jun', ventas: 2390, visitas: 3800 },
+            { name: 'Jul', ventas: 3490, visitas: 4300 },
+        ];
+
+        const genreData = [
+            { name: 'Ficción', value: 400 },
+            { name: 'Ciencia', value: 300 },
+            { name: 'Historia', value: 300 },
+            { name: 'Tecnología', value: 200 },
+        ];
+
+        // NUEVA PALETA DE COLORES (Basada en la imagen azul)
+        // Azul oscuro principal, Azul rey, Azul cielo, Gris azulado
+        const COLORS = ['#1e3a8a', '#3b82f6', '#93c5fd', '#64748b'];
+
+        const recentComments = [
+            { id: 1, user: "Ana García", book: "El Código Limpio", comment: "Excelente libro para desarrolladores.", rating: 5, time: "Hace 2 min" },
+            { id: 2, user: "Carlos López", book: "Cien Años de Soledad", comment: "Un clásico que nunca muere.", rating: 5, time: "Hace 15 min" },
+            { id: 3, user: "Maria Diaz", book: "Historia del Tiempo", comment: "Un poco denso, pero fascinante.", rating: 4, time: "Hace 1 hora" },
+            { id: 4, user: "Juan Pérez", book: "React Moderno", comment: "Me ayudó mucho con mis proyectos.", rating: 5, time: "Hace 3 horas" },
+        ];
+
+        const topBooks = [
+            { id: 1, title: "Hábitos Atómicos", author: "James Clear", sales: 1250, price: "$24.99" },
+            { id: 2, title: "Clean Code", author: "Robert C. Martin", sales: 980, price: "$35.50" },
+            { id: 3, title: "1984", author: "George Orwell", sales: 850, price: "$12.00" },
+            { id: 4, title: "El Principito", author: "Antoine de Saint-Exupéry", sales: 740, price: "$10.50" },
+        ];
+
+        // --- COMPONENTES ---
+
+        const Sidebar = ({ isOpen, toggleSidebar }) => (
+            // CAMBIO: bg-slate-900 -> bg-[#1e3a8a] (Azul oscuro del header de la imagen)
+            <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-[#1e3a8a] text-white transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0`}>
+                <div className="flex items-center justify-between h-16 px-6 bg-[#172554]"> {/* Azul aún más oscuro para header sidebar */}
+                    <span className="text-xl font-brand font-bold flex items-center gap-2 tracking-wide">
+                        <BookOpen className="text-blue-300" /> Portal Educativo
+                    </span>
+                    <button onClick={toggleSidebar} className="lg:hidden text-blue-200 hover:text-white">
+                        <X size={24} />
+                    </button>
+                </div>
+                <nav className="p-4 space-y-2">
+                    {/* CAMBIO: Botón activo ahora es un azul ligeramente más claro para contraste sutil */}
+                    <a href="#" className="flex items-center gap-3 px-4 py-3 bg-[#2563eb] rounded-lg text-white shadow-lg shadow-blue-900/50 border border-blue-500">
+                        <TrendingUp size={20} /> Dashboard
+                    </a>
+                    <a href="#" className="flex items-center gap-3 px-4 py-3 text-blue-100 hover:bg-[#2563eb] hover:text-white rounded-lg transition-colors">
+                        <BookOpen size={20} /> Libros
+                    </a>
+                    <a href="#" className="flex items-center gap-3 px-4 py-3 text-blue-100 hover:bg-[#2563eb] hover:text-white rounded-lg transition-colors">
+                        <Users size={20} /> Usuarios
+                    </a>
+                    <a href="#" className="flex items-center gap-3 px-4 py-3 text-blue-100 hover:bg-[#2563eb] hover:text-white rounded-lg transition-colors">
+                        <MessageSquare size={20} /> Comentarios
+                    </a>
+                </nav>
+                <div className="absolute bottom-0 w-full p-6 bg-[#172554]">
+                    <div className="flex items-center gap-3">
+                        <img src="https://i.pravatar.cc/150?img=11" alt="Admin" className="w-10 h-10 rounded-full border-2 border-blue-300" />
+                        <div>
+                            <p className="text-sm font-medium">Admin User</p>
+                            <p className="text-xs text-blue-300">admin@portal.com</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const StatCard = ({ title, value, icon: Icon, bgIcon, trend }) => (
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    {/* CAMBIO: Usamos una clase de fondo dinámica basada en azul */}
+                    <div className={`p-3 rounded-lg ${bgIcon} text-white`}>
+                        <Icon size={24} />
+                    </div>
+                    <span className={`text-sm font-medium ${trend >= 0 ? 'text-blue-600' : 'text-red-500'} flex items-center gap-1`}>
+                        {trend > 0 ? '+' : ''}{trend}%
+                        <TrendingUp size={16} />
+                    </span>
+                </div>
+                <h3 className="text-slate-500 text-sm font-medium mb-1 font-brand">{title}</h3>
+                <p className="text-3xl font-bold text-[#1e3a8a] font-brand">{value}</p>
+            </div>
+        );
+
+        const App = () => {
+            const [sidebarOpen, setSidebarOpen] = useState(false);
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+                    
+                    {/* Overlay para móvil */}
+                    {sidebarOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden" onClick={() => setSidebarOpen(false)}></div>
+                    )}
+
+                    <div className="flex-1 flex flex-col overflow-hidden bg-[#f8fafc]">
+                        {/* Header */}
+                        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-10">
+                            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-[#1e3a8a]">
+                                <Menu size={24} />
+                            </button>
+                            
+                            <div className="flex items-center bg-slate-50 rounded-lg px-3 py-2 w-full max-w-md mx-4 hidden sm:flex border border-slate-100">
+                                <Search size={18} className="text-[#1e3a8a]" />
+                                <input type="text" placeholder="Buscar libros, usuarios..." className="bg-transparent border-none focus:outline-none ml-2 w-full text-sm text-slate-600 placeholder-slate-400" />
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <button className="p-2 text-[#1e3a8a] hover:bg-blue-50 rounded-full relative">
+                                    <Bell size={20} />
+                                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* Contenido Principal */}
+                        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
+                            
+                            <div className="mb-8 flex justify-between items-end">
+                                <div>
+                                    {/* CAMBIO: Tipografía Serif para el título principal */}
+                                    <h1 className="text-3xl font-bold text-[#1e3a8a] font-brand">Panel de Control</h1>
+                                    <p className="text-slate-500 text-sm mt-1">Gestión de Catálogo Estudiantil</p>
+                                </div>
+                                <div className="hidden sm:block">
+                                    {/* CAMBIO: Botón con el azul "Explorar Catálogo" */}
+                                    <button className="bg-[#2563eb] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#1d4ed8] transition-colors shadow-md shadow-blue-200">
+                                        Descargar Reporte
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Tarjetas de Estadísticas - Uniformidad en tonos azules */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                <StatCard title="Ventas Totales" value="$24,500" icon={DollarSign} bgIcon="bg-[#1e3a8a]" trend={12} />
+                                <StatCard title="Libros Vendidos" value="1,240" icon={BookOpen} bgIcon="bg-[#2563eb]" trend={8.5} />
+                                <StatCard title="Usuarios Activos" value="892" icon={Users} bgIcon="bg-[#3b82f6]" trend={-2.4} />
+                                <StatCard title="Comentarios" value="156" icon={MessageSquare} bgIcon="bg-[#60a5fa]" trend={15} />
+                            </div>
+
+                            {/* Sección de Gráficas */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                                {/* Gráfica de Ventas */}
+                                <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                                    <h3 className="text-lg font-bold text-[#1e3a8a] mb-4 font-brand">Análisis de Ventas</h3>
+                                    <div className="h-80 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={salesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                <defs>
+                                                    {/* CAMBIO: Gradiente azul oscuro */}
+                                                    <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#1e3a8a" stopOpacity={0.8}/>
+                                                        <stop offset="95%" stopColor="#1e3a8a" stopOpacity={0}/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <XAxis dataKey="name" stroke="#94a3b8" />
+                                                <YAxis stroke="#94a3b8" />
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                <Tooltip 
+                                                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', color: '#1e3a8a' }}
+                                                />
+                                                <Area type="monotone" dataKey="ventas" stroke="#1e3a8a" strokeWidth={3} fillOpacity={1} fill="url(#colorVentas)" />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                {/* Gráfica de Géneros */}
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                                    <h3 className="text-lg font-bold text-[#1e3a8a] mb-4 font-brand">Categorías</h3>
+                                    <div className="h-64 w-full flex justify-center">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={genreData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                >
+                                                    {genreData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip />
+                                                <Legend verticalAlign="bottom" height={36}/>
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="text-center mt-4">
+                                        <p className="text-sm text-slate-500">Líder: <span className="font-bold text-[#1e3a8a]">Ficción</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sección Inferior: Comentarios y Libros Top */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                
+                                {/* Comentarios Recientes */}
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                                    <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                                        <h3 className="text-lg font-bold text-[#1e3a8a] font-brand">Opiniones Recientes</h3>
+                                        <button className="text-sm text-[#2563eb] font-medium hover:underline">Ver todas</button>
+                                    </div>
+                                    <div className="p-6 space-y-6">
+                                        {recentComments.map((comment) => (
+                                            <div key={comment.id} className="flex gap-4">
+                                                <img 
+                                                    src={`https://i.pravatar.cc/150?img=${comment.id + 10}`} 
+                                                    alt={comment.user} 
+                                                    className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                                                />
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-start">
+                                                        <h4 className="text-sm font-bold text-[#1e3a8a]">{comment.user}</h4>
+                                                        <span className="text-xs text-slate-400">{comment.time}</span>
+                                                    </div>
+                                                    <p className="text-xs text-[#2563eb] font-medium mb-1">en {comment.book}</p>
+                                                    <p className="text-sm text-slate-600 line-clamp-2 italic">"{comment.comment}"</p>
+                                                    <div className="flex mt-1">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star key={i} size={12} className={i < comment.rating ? "text-yellow-400 fill-yellow-400" : "text-slate-200"} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Top Libros */}
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                                    <div className="p-6 border-b border-slate-100">
+                                        <h3 className="text-lg font-bold text-[#1e3a8a] font-brand">Material Más Solicitado</h3>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead>
+                                                <tr className="bg-slate-50 text-[#1e3a8a] text-xs uppercase tracking-wider">
+                                                    <th className="px-6 py-4 font-bold">Título</th>
+                                                    <th className="px-6 py-4 font-bold">Autor</th>
+                                                    <th className="px-6 py-4 font-bold text-right">Cant.</th>
+                                                    <th className="px-6 py-4 font-bold text-right">Precio</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {topBooks.map((book) => (
+                                                    <tr key={book.id} className="hover:bg-blue-50 transition-colors">
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-10 bg-blue-100 rounded shadow-sm flex items-center justify-center text-[#1e3a8a]">
+                                                                    <BookOpen size={16} />
+                                                                </div>
+                                                                <span className="font-medium text-slate-700">{book.title}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm text-slate-500">{book.author}</td>
+                                                        <td className="px-6 py-4 text-sm text-slate-700 text-right font-medium">{book.sales}</td>
+                                                        <td className="px-6 py-4 text-sm text-[#1e3a8a] text-right font-bold">{book.price}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="p-4 border-t border-slate-100 bg-slate-50 text-center">
+                                        <button className="text-sm text-[#2563eb] font-medium hover:underline">Ver catálogo completo</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
